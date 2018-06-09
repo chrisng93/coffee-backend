@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/chrisng93/coffee-backend/api"
+	"github.com/chrisng93/coffee-backend/yelp"
 	flags "github.com/jessevdk/go-flags"
 )
 
@@ -13,13 +14,24 @@ type flagOptions struct {
 	Port string `long:"port" description:"The port for the server to run on." default:"8080" required:"false"`
 }
 
-var options flagOptions
+type combinedOptions struct {
+	flagOptions
+	yelp.YelpFlagOptions
+}
+
+var options combinedOptions
+var yelpClient *yelp.YelpClient
 
 func main() {
-	options = flagOptions{}
+	options = combinedOptions{}
 	_, err := flags.Parse(&options)
 	if err != nil {
 		log.Fatalf("Error parsing flags: %v", err)
+	}
+
+	yelpClient, err = yelp.InitClient(&options.YelpFlagOptions)
+	if err != nil {
+		log.Fatalf("Error initializing Yelp client: %v", err)
 	}
 
 	router := api.Init()
