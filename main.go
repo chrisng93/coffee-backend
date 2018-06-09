@@ -6,6 +6,8 @@ import (
 	"net/http"
 
 	"github.com/chrisng93/coffee-backend/api"
+	"github.com/chrisng93/coffee-backend/data"
+	"github.com/chrisng93/coffee-backend/db"
 	"github.com/chrisng93/coffee-backend/yelp"
 	flags "github.com/jessevdk/go-flags"
 )
@@ -18,7 +20,8 @@ type flagOptions struct {
 // Flag options for app and API clients.
 type combinedOptions struct {
 	flagOptions
-	yelp.FlagOptions
+	yelp.YelpFlagOptions
+	db.DatabaseFlagOptions
 }
 
 var options combinedOptions
@@ -32,15 +35,19 @@ func main() {
 		log.Fatalf("Error parsing flags: %v", err)
 	}
 
+	// Initialize database.
+	dbInstance, err := db.Init(&options.DatabaseFlagOptions)
+	if err != nil {
+		log.Fatalf("Error connecting to database: %v", err)
+	}
+
 	// Initialize Yelp API.
-	yelpClient, err = yelp.InitClient(&options.FlagOptions)
+	yelpClient, err = yelp.InitClient(&options.YelpFlagOptions)
 	if err != nil {
 		log.Fatalf("Error initializing Yelp client: %v", err)
 	}
 
-	// TODO: Get rid of this - it's just for testing.
-	businesses, yelpErr := yelpClient.SearchBusinesses()
-	fmt.Println(businesses, yelpErr)
+	go data.InitializeCronJobs(yelpClient)
 
 	// Initialize router.
 	router := api.Init()

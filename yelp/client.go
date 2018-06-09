@@ -5,8 +5,8 @@ import (
 	"net/url"
 )
 
-// FlagOptions defines the flag options for the Yelp Client.
-type FlagOptions struct {
+// YelpFlagOptions defines the flag options for the Yelp Client.
+type YelpFlagOptions struct {
 	YelpBaseURL  string `long:"yelp_base_url" description:"Yelp Base URL." default:"https://api.yelp.com" required:"false"`
 	YelpClientID string `long:"yelp_client_id" description:"Yelp Client ID." default:"" required:"true"`
 	YelpAPIKey   string `long:"yelp_api_key" description:"Yelp API Key." default:"" required:"true"`
@@ -22,7 +22,7 @@ type Client struct {
 }
 
 // InitClient initializes a Yelp Client given a set of flags.
-func InitClient(flags *FlagOptions) (*Client, error) {
+func InitClient(flags *YelpFlagOptions) (*Client, error) {
 	baseURL, err := url.Parse(flags.YelpBaseURL)
 	if err != nil {
 		return nil, err
@@ -34,5 +34,3 @@ func InitClient(flags *FlagOptions) (*Client, error) {
 		httpClient: &http.Client{},
 	}, nil
 }
-
-// TODO: Create cron job to call Yelp's API every day to businesses.

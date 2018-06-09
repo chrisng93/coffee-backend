@@ -35,7 +35,7 @@ func (c *Client) SearchBusinesses() ([]Business, error) {
 		req, err := util.CreateGetRequest(&util.GetRequestParams{
 			BaseURL: c.baseURL,
 			Path:    "/v3/businesses/search",
-			APIKey:  "123",
+			APIKey:  c.apiKey,
 			QueryParams: map[string]string{
 				"limit":    strconv.FormatInt(limit, 10),
 				"offset":   strconv.FormatInt(numTries*limit, 10),
