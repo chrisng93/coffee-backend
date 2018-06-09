@@ -4,7 +4,9 @@ SET SEARCH_PATH TO coffeeshop;
 
 CREATE TABLE shop (
     -- Auto-generated unique ID.
-    id BIGINT PRIMARY KEY NOT NULL,
+    id BIGSERIAL PRIMARY KEY,
+    -- Timestamp of last updated time.
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     -- Coffee shop's name, as determined by Yelp.
     shop_name TEXT NOT NULL,
     -- Shop's latitude.
@@ -12,9 +14,9 @@ CREATE TABLE shop (
     -- Shop's longitude.
     lng DECIMAL NOT NULL,
     -- Shop's Yelp ID.
-    yelp_id TEXT NOT NULL,
+    yelp_id TEXT UNIQUE NOT NULL,
     -- Shop's Yelp URL.
-    yelp_url TEXT NOT NULL,
+    yelp_url TEXT UNIQUE NOT NULL,
     -- Whether or not the shop has good coffee.
     -- TODO: More on how this is determined.
     has_good_coffee BOOLEAN NOT NULL DEFAULT false,
@@ -25,3 +27,13 @@ CREATE TABLE shop (
     -- is_instagrammable BOOLEAN DEFAULT false,
     -- instagram_id TEXT
 );
+
+CREATE OR REPLACE FUNCTION update_last_updated()   
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.last_updated = now();
+    RETURN NEW;   
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_shop_last_updated BEFORE UPDATE ON shop FOR EACH ROW EXECUTE PROCEDURE update_last_updated();
