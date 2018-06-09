@@ -7,34 +7,29 @@ import (
 	"net/url"
 )
 
-type YelpFlagOptions struct {
+// FlagOptions defines the flag options for the Yelp Client.
+type FlagOptions struct {
 	YelpBaseURL  string `long:"yelp_base_url" description:"Yelp Base URL." default:"https://api.yelp.com" required:"false"`
 	YelpClientID string `long:"yelp_client_id" description:"Yelp Client ID." default:"" required:"true"`
 	YelpAPIKey   string `long:"yelp_api_key" description:"Yelp API Key." default:"" required:"true"`
 }
 
-type YelpClient struct {
+// Client contains information needed to make calls to Yelp's API and an HTTP client to actually
+// call Yelp's API.
+type Client struct {
 	baseURL    *url.URL
 	clientID   string
 	apiKey     string
 	httpClient *http.Client
 }
 
-type SearchBusinessResponse struct {
-	Total      int64      `json:"total"`
-	Businesses []Business `json:"businesses"`
-}
-
-type Business struct {
-	Rating float64 `json:"rating"`
-}
-
-func InitClient(flags *YelpFlagOptions) (*YelpClient, error) {
+// InitClient initializes a Yelp Client given a set of flags.
+func InitClient(flags *FlagOptions) (*Client, error) {
 	baseURL, err := url.Parse(flags.YelpBaseURL)
 	if err != nil {
 		return nil, err
 	}
-	return &YelpClient{
+	return &Client{
 		baseURL:    baseURL,
 		clientID:   flags.YelpClientID,
 		apiKey:     flags.YelpAPIKey,
@@ -42,11 +37,24 @@ func InitClient(flags *YelpFlagOptions) (*YelpClient, error) {
 	}, nil
 }
 
-func (c *YelpClient) SearchBusinesses() ([]Business, error) {
+// TODO: Create cron job to call Yelp's API every day to businesses.
+
+// SearchBusinessResponse defines the response from calling Yelp's /v3/businesses/search endpoint.
+type SearchBusinessResponse struct {
+	Total      int64      `json:"total"`
+	Businesses []Business `json:"businesses"`
+}
+
+// Business defines the information related to a Yelp business.
+type Business struct {
+	Rating float64 `json:"rating"`
+}
+
+// SearchBusinesses calls Yelp's /v3/businesses/search endpoint to get a list of businesses.
+func (c *Client) SearchBusinesses() ([]Business, error) {
 	// Create request.
 	rel := &url.URL{Path: "/v3/businesses/search"}
 	u := c.baseURL.ResolveReference(rel)
-	fmt.Println(u.String())
 	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		return nil, err
@@ -56,6 +64,8 @@ func (c *YelpClient) SearchBusinesses() ([]Business, error) {
 
 	// Generate query string.
 	q := req.URL.Query()
+	// TODO: Deal with pagination for large responses - offset + limit query params.
+	// TODO: Add search filter and other params.
 	q.Add("location", "Manhattan")
 	req.URL.RawQuery = q.Encode()
 

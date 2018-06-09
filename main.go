@@ -10,33 +10,39 @@ import (
 	flags "github.com/jessevdk/go-flags"
 )
 
+// App-level flag options.
 type flagOptions struct {
 	Port string `long:"port" description:"The port for the server to run on." default:"8080" required:"false"`
 }
 
+// Flag options for app and API clients.
 type combinedOptions struct {
 	flagOptions
-	yelp.YelpFlagOptions
+	yelp.FlagOptions
 }
 
 var options combinedOptions
-var yelpClient *yelp.YelpClient
+var yelpClient *yelp.Client
 
 func main() {
+	// Parse flags.
 	options = combinedOptions{}
 	_, err := flags.Parse(&options)
 	if err != nil {
 		log.Fatalf("Error parsing flags: %v", err)
 	}
 
-	yelpClient, err = yelp.InitClient(&options.YelpFlagOptions)
+	// Initialize Yelp API.
+	yelpClient, err = yelp.InitClient(&options.FlagOptions)
 	if err != nil {
 		log.Fatalf("Error initializing Yelp client: %v", err)
 	}
 
-	a, b := yelpClient.SearchBusinesses()
-	fmt.Println(a, b)
+	// TODO: Get rid of this - it's just for testing.
+	businesses, yelpErr := yelpClient.SearchBusinesses()
+	fmt.Println(businesses, yelpErr)
 
+	// Initialize router.
 	router := api.Init()
 	err = http.ListenAndServe(fmt.Sprintf(":%s", options.Port), corsMiddleware(router))
 	if err != nil {
