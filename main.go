@@ -47,7 +47,8 @@ func main() {
 		log.Fatalf("Error initializing Yelp client: %v", err)
 	}
 
-	go data.InitializeCronJobs(yelpClient)
+	// Start cron jobs for getting data from Yelp and Instagram.
+	go data.InitializeCronJobs(dbInstance, yelpClient)
 
 	// Initialize router.
 	router := api.Init()
