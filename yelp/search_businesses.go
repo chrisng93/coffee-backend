@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/chrisng93/coffee-backend/client"
+	"github.com/chrisng93/coffee-backend/util"
 )
 
 // MaxResults defines the maximum number of results Yelp allows you to see for one query.
@@ -32,7 +32,7 @@ func (c *Client) SearchBusinesses() ([]Business, error) {
 
 	for (int64(len(businesses)) < numTotalBusinesses || numTries != 0) && numTries*limit < MaxResults {
 		// TODO: Add search filter and other params.
-		req, err := client.CreateGetRequest(&client.GetRequestParams{
+		req, err := util.CreateGetRequest(&util.GetRequestParams{
 			BaseURL: c.baseURL,
 			Path:    "/v3/businesses/search",
 			APIKey:  "123",
@@ -55,7 +55,7 @@ func (c *Client) SearchBusinesses() ([]Business, error) {
 			return nil, err
 		}
 		var searchBusinessResponse SearchBusinessResponse
-		err = client.UnmarshalResponseBody(resp, &searchBusinessResponse)
+		err = util.UnmarshalResponseBody(resp, &searchBusinessResponse)
 		if err != nil {
 			return nil, err
 		}
