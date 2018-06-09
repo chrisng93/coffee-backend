@@ -2,12 +2,13 @@ package yelp
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 )
 
 type YelpFlagOptions struct {
-	YelpBaseURL  string `long:"yelp_base_url" description:"Yelp Base URL." default:"https://api.yelp.com/v3" required:"false"`
+	YelpBaseURL  string `long:"yelp_base_url" description:"Yelp Base URL." default:"https://api.yelp.com" required:"false"`
 	YelpClientID string `long:"yelp_client_id" description:"Yelp Client ID." default:"" required:"true"`
 	YelpAPIKey   string `long:"yelp_api_key" description:"Yelp API Key." default:"" required:"true"`
 }
@@ -20,11 +21,12 @@ type YelpClient struct {
 }
 
 type SearchBusinessResponse struct {
-	Total      string     `json:"total"`
+	Total      int64      `json:"total"`
 	Businesses []Business `json:"businesses"`
 }
 
 type Business struct {
+	Rating float64 `json:"rating"`
 }
 
 func InitClient(flags *YelpFlagOptions) (*YelpClient, error) {
@@ -41,14 +43,23 @@ func InitClient(flags *YelpFlagOptions) (*YelpClient, error) {
 }
 
 func (c *YelpClient) SearchBusinesses() ([]Business, error) {
-	rel := &url.URL{Path: "/businesses/search"}
+	// Create request.
+	rel := &url.URL{Path: "/v3/businesses/search"}
 	u := c.baseURL.ResolveReference(rel)
+	fmt.Println(u.String())
 	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
 
+	// Generate query string.
+	q := req.URL.Query()
+	q.Add("location", "Manhattan")
+	req.URL.RawQuery = q.Encode()
+
+	// Send request and decode body.
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err

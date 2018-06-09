@@ -34,6 +34,9 @@ func main() {
 		log.Fatalf("Error initializing Yelp client: %v", err)
 	}
 
+	a, b := yelpClient.SearchBusinesses()
+	fmt.Println(a, b)
+
 	router := api.Init()
 	err = http.ListenAndServe(fmt.Sprintf(":%s", options.Port), corsMiddleware(router))
 	if err != nil {
