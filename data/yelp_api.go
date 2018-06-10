@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/chrisng93/coffee-backend/db"
-
 	"github.com/chrisng93/coffee-backend/models"
 	"github.com/chrisng93/coffee-backend/yelp"
 )

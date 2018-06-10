@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/chrisng93/coffee-backend/models"
+	"github.com/gocolly/colly"
 
 	"github.com/chrisng93/coffee-backend/db"
-	"github.com/gocolly/colly"
+	"github.com/chrisng93/coffee-backend/models"
 )
 
 // yelpAttribute is sent into the attribute channel when we scrape each Yelp URL. It contains

@@ -5,11 +5,12 @@ import (
 	"log"
 	"net/http"
 
+	flags "github.com/jessevdk/go-flags"
+
 	"github.com/chrisng93/coffee-backend/api"
 	"github.com/chrisng93/coffee-backend/data"
 	"github.com/chrisng93/coffee-backend/db"
 	"github.com/chrisng93/coffee-backend/yelp"
-	flags "github.com/jessevdk/go-flags"
 )
 
 // App-level flag options.
@@ -51,7 +52,7 @@ func main() {
 	go data.InitializeCronJobs(databaseOps, yelpClient)
 
 	// Initialize router.
-	router := api.Init()
+	router := api.Init(databaseOps)
 	err = http.ListenAndServe(fmt.Sprintf(":%s", options.Port), corsMiddleware(router))
 	if err != nil {
 		log.Fatalf("Error starting server: %v", err)
