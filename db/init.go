@@ -19,8 +19,14 @@ type DatabaseFlagOptions struct {
 	DatabaseName     string `long:"db_name" description:"The database name." default:"postgres" required:"false"`
 }
 
+// DatabaseOps is a struct that wraps the database object. Database operations can *only* be used
+// elsewhere in the app via this struct.
+type DatabaseOps struct {
+	db *sql.DB
+}
+
 // Init initializes the database instance.
-func Init(options *DatabaseFlagOptions) (*sql.DB, error) {
+func Init(options *DatabaseFlagOptions) (*DatabaseOps, error) {
 	var err error
 	connStr := fmt.Sprintf(
 		// TODO: Manage sslmode in prod.
@@ -35,5 +41,7 @@ func Init(options *DatabaseFlagOptions) (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	return db, nil
+	return &DatabaseOps{
+		db: db,
+	}, nil
 }

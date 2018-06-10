@@ -36,7 +36,7 @@ func main() {
 	}
 
 	// Initialize database.
-	dbInstance, err := db.Init(&options.DatabaseFlagOptions)
+	databaseOps, err := db.Init(&options.DatabaseFlagOptions)
 	if err != nil {
 		log.Fatalf("Error connecting to database: %v", err)
 	}
@@ -48,7 +48,7 @@ func main() {
 	}
 
 	// Start cron jobs for getting data from Yelp and Instagram.
-	go data.InitializeCronJobs(dbInstance, yelpClient)
+	go data.InitializeCronJobs(databaseOps, yelpClient)
 
 	// Initialize router.
 	router := api.Init()

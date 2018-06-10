@@ -8,7 +8,7 @@ CREATE TABLE shop (
     -- Timestamp of last updated time.
     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     -- Coffee shop's name, as determined by Yelp.
-    shop_name TEXT NOT NULL,
+    name TEXT NOT NULL,
     -- Shop's latitude.
     lat DECIMAL NOT NULL,
     -- Shop's longitude.
@@ -24,7 +24,7 @@ CREATE TABLE shop (
     -- if the shop has wifi and is "good for working" (determined by Yelp).
     is_good_for_studying BOOLEAN NOT NULL DEFAULT false
     -- TODO: Uncomment these when add Instagram.
-    -- is_instagrammable BOOLEAN DEFAULT false,
+    -- is_instagrammable BOOLEAN NOT NULL DEFAULT false,
     -- instagram_id TEXT
 );
 

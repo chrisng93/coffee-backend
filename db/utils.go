@@ -16,5 +16,12 @@ func createTransaction(db *sql.DB, cb func(tx *sql.Tx) error) error {
 		return err
 	}
 
-	return cb(tx)
+	err = cb(tx)
+	if err != nil {
+		success = false
+	} else {
+		success = true
+	}
+
+	return err
 }
