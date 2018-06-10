@@ -8,6 +8,12 @@
   version = "v1.4.1"
 
 [[projects]]
+  name = "github.com/anaskhan96/soup"
+  packages = ["."]
+  revision = "cd07662ec9300d16d2ece1c24b0b29ad89f65ff4"
+  version = "v1.1"
+
+[[projects]]
   name = "github.com/andybalholm/cascadia"
   packages = ["."]
   revision = "901648c87902174f774fac311d7f176f8647bdaa"
@@ -162,6 +168,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4bb08146cde5a35b003acd3047802f3135218ceebc491f8a0181fb2442ccc247"
+  inputs-digest = "9071794d2937fd75bbb613eeac04a0ff0e8d0c6f9f93e8bc98fafcf5de3d4d5f"
   solver-name = "gps-cdcl"
   solver-version = 1

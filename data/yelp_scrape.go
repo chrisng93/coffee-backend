@@ -1,12 +1,24 @@
 package data
 
 import (
-	"fmt"
+	"log"
 	"strings"
+	"sync"
+	"time"
+
+	"github.com/chrisng93/coffee-backend/models"
 
 	"github.com/chrisng93/coffee-backend/db"
 	"github.com/gocolly/colly"
 )
+
+// yelpAttribute is sent into the attribute channel when we scrape each Yelp URL. It contains
+// information about whether a Yelp business is good for working and/or has free wifi.
+type yelpAttributes struct {
+	yelpURL          string
+	isGoodForWorking bool
+	hasWifi          bool
+}
 
 func scrapeCoffeeShopYelpURLs(databaseOps *db.DatabaseOps) error {
 	// TODO: Get all coffee shops, scrape their Yelp URL to see if study friendly.
@@ -19,36 +31,79 @@ func scrapeCoffeeShopYelpURLs(databaseOps *db.DatabaseOps) error {
 		return err
 	}
 
+	wg := &sync.WaitGroup{}
+	wg.Add(len(coffeeShops))
+	// Use attributeChan to facilitate communication with goroutines used for scraping.
+	attributeChan := make(chan *yelpAttributes, len(coffeeShops))
+	// Create mapping of Yelp URL to pointer to coffee shop. Use this mapping for updating
+	// coffee shop's isGoodForStudying attribute.
+	yelpURLToCoffeeShop := map[string]*models.CoffeeShop{}
 	for _, coffeeShop := range coffeeShops {
-		fmt.Println(coffeeShop)
-		go scrapeYelpURL(coffeeShop.YelpURL)
+		go scrapeYelpURL(wg, coffeeShop.YelpURL, attributeChan)
+		time.Sleep(500 * time.Millisecond)
+		yelpURLToCoffeeShop[coffeeShop.YelpURL] = coffeeShop
 	}
 
-	return nil
+	wg.Wait()
+	close(attributeChan)
+
+	// We only want to update coffee shops that have an IsGoodForStudying attribute that has
+	// changed.
+	var changedCoffeeShops []*models.CoffeeShop
+	for yelpAttribute := range attributeChan {
+		coffeeShop := yelpURLToCoffeeShop[yelpAttribute.yelpURL]
+		newIsGoodForStudying := yelpAttribute.isGoodForWorking && yelpAttribute.hasWifi
+		if coffeeShop.IsGoodForStudying != newIsGoodForStudying {
+			coffeeShop.IsGoodForStudying = yelpAttribute.isGoodForWorking && yelpAttribute.hasWifi
+			changedCoffeeShops = append(changedCoffeeShops, coffeeShop)
+		}
+	}
+
+	return databaseOps.UpdateCoffeeShops(changedCoffeeShops)
 }
 
-func scrapeYelpURL(yelpURL string) {
-	// Instantiate default collector
+func scrapeYelpURL(wg *sync.WaitGroup, yelpURL string, attributeChan chan *yelpAttributes) {
 	c := colly.NewCollector()
 
-	var found bool
 	c.OnHTML(".ywidget .ylist .short-def-list", func(listElem *colly.HTMLElement) {
-		found = true
-		listElem.ForEach("dl", func(i int, listItemElem *colly.HTMLElement) {
-			parseListItem(listItemElem, "goodforworking")
-			parseListItem(listItemElem, "wi-fi")
+		// Need to defer wg.Done() here and in onError because one of these two must be called by
+		// colly.Collector.
+		defer wg.Done()
+		var isGoodForWorking, hasWifi bool
+		listElem.ForEach("dl", func(_ int, listItemElem *colly.HTMLElement) {
+			// Check Yelp's "More business info" for the "Good for Working" and "Wi-fi" attributes.
+			formattedText := formatString(listItemElem.Text)
+			if strings.Contains(formattedText, "goodforworking") {
+				isGoodForWorking = attributeHasPositiveValue(formattedText, "goodforworking", "yes")
+			}
+			if strings.Contains(formattedText, "wi-fi") {
+				hasWifi = attributeHasPositiveValue(formattedText, "wi-fi", "free")
+			}
 		})
+		attributeChan <- &yelpAttributes{
+			yelpURL:          yelpURL,
+			isGoodForWorking: isGoodForWorking,
+			hasWifi:          hasWifi,
+		}
 	})
-	if !found {
-		// fmt.Println(yelpURL)
-	}
 
 	c.Visit(yelpURL)
+
+	c.OnError(func(_ *colly.Response, err error) {
+		defer wg.Done()
+		log.Println("Something went wrong:", err)
+	})
 }
 
-func parseListItem(listItemElem *colly.HTMLElement, attribute string) {
-	str := strings.ToLower(strings.Replace(strings.Replace(strings.TrimSpace(listItemElem.Text), " ", "", -1), "\n", "", -1))
-	if len(str) > len(attribute) && str[:len(attribute)] == attribute {
-		// fmt.Println(strings.SplitAfter(str, attribute))
-	}
+func attributeHasPositiveValue(attributeAndValue string, attribute string, positiveCase string) bool {
+	return strings.SplitAfter(attributeAndValue, attribute)[1] == positiveCase
+}
+
+// formatString takes a list item element from Yelp's "More business info" section and puts it in
+// the following format: ${attribute}${value}. Ex: goodforworkingyes.
+func formatString(text string) string {
+	text = strings.TrimSpace(text)
+	text = strings.Replace(text, " ", "", -1)
+	text = strings.Replace(text, "\n", "", -1)
+	return strings.ToLower(text)
 }

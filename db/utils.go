@@ -6,9 +6,7 @@ func createTransaction(db *sql.DB, cb func(tx *sql.Tx) error) error {
 	tx, err := db.Begin()
 	var success bool
 	defer func() {
-		if success {
-			tx.Commit()
-		} else {
+		if !success {
 			tx.Rollback()
 		}
 	}()
@@ -21,6 +19,11 @@ func createTransaction(db *sql.DB, cb func(tx *sql.Tx) error) error {
 		success = false
 	} else {
 		success = true
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		success = false
 	}
 
 	return err

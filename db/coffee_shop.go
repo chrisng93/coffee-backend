@@ -7,7 +7,9 @@ import (
 	"github.com/chrisng93/coffee-backend/models"
 )
 
-// InsertOrUpdateCoffeeShops inserts or updates coffee shops.
+// InsertOrUpdateCoffeeShops inserts or updates coffee shops. This is called when we call the Yelp
+// API to get coffee shop information. We update on conflict, rather than do nothing, in case the
+// name, lat, lng, or Yelp URL have changed.
 func (ops *DatabaseOps) InsertOrUpdateCoffeeShops(coffeeShops []*models.CoffeeShop) error {
 	var failedTransactions []string
 
@@ -17,7 +19,7 @@ func (ops *DatabaseOps) InsertOrUpdateCoffeeShops(coffeeShops []*models.CoffeeSh
 			// time-intensive. Change this to be a bulk upsert.
 			_, err := tx.Exec(
 				`INSERT INTO coffeeshop.shop (name, lat, lng, yelp_id, yelp_url)
-				 VALUES ($1, $2, $3, $4, $5)
+				 VALUES ($1, $2, $3, $4, $5, $6, $7)
 				 ON CONFLICT (yelp_id)
 				 DO UPDATE SET (name, lat, lng, yelp_url) = ($1, $2, $3, $5)`,
 				coffeeShop.Name,
@@ -28,9 +30,6 @@ func (ops *DatabaseOps) InsertOrUpdateCoffeeShops(coffeeShops []*models.CoffeeSh
 			)
 			if err != nil {
 				failedTransactions = append(failedTransactions, coffeeShop.YelpID)
-				fmt.Println("unsuccessful db op for", coffeeShop.Name)
-			} else {
-				fmt.Println("successfully inserted", coffeeShop.Name)
 			}
 		}
 		return nil
@@ -88,4 +87,24 @@ func (ops *DatabaseOps) GetCoffeeShops() ([]*models.CoffeeShop, error) {
 		return nil, err
 	}
 	return coffeeShops, nil
+}
+
+// UpdateCoffeeShops updates an input list of coffee shops. This is used for updating fields that
+// we calculate, such as has_good_coffee and is_good_for_studying.
+func (ops *DatabaseOps) UpdateCoffeeShops(coffeeShops []*models.CoffeeShop) error {
+	// TODO: Optimize this. Right now it's slow, but it doesn't matter as much since it's only a
+	// couple hundred lines every couple days.
+	return createTransaction(ops.db, func(tx *sql.Tx) error {
+		for _, coffeeShop := range coffeeShops {
+			_, err := tx.Exec(`
+				UPDATE coffeeshop.shop
+				SET has_good_coffee=$1, is_good_for_studying=$2
+				WHERE id=$3
+			`, coffeeShop.HasGoodCoffee, coffeeShop.IsGoodForStudying, coffeeShop.ID)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
