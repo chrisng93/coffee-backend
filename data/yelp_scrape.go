@@ -1,6 +1,7 @@
 package data
 
 import (
+	"fmt"
 	"log"
 	"strings"
 	"sync"
@@ -46,6 +47,7 @@ func scrapeCoffeeShopYelpURLs(databaseOps *db.DatabaseOps) error {
 
 	wg.Wait()
 	close(attributeChan)
+	fmt.Println("inserted stuff")
 
 	// We only want to update coffee shops that have an IsGoodForStudying attribute that has
 	// changed.
@@ -54,6 +56,7 @@ func scrapeCoffeeShopYelpURLs(databaseOps *db.DatabaseOps) error {
 		coffeeShop := yelpURLToCoffeeShop[yelpAttribute.yelpURL]
 		newIsGoodForStudying := yelpAttribute.isGoodForWorking && yelpAttribute.hasWifi
 		if coffeeShop.IsGoodForStudying != newIsGoodForStudying {
+			fmt.Println("coffee shop info changed", coffeeShop.Name)
 			coffeeShop.IsGoodForStudying = yelpAttribute.isGoodForWorking && yelpAttribute.hasWifi
 			changedCoffeeShops = append(changedCoffeeShops, coffeeShop)
 		}

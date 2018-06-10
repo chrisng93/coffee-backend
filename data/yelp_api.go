@@ -1,8 +1,8 @@
 package data
 
 import (
-	"fmt"
 	"log"
+	"sync"
 
 	"github.com/chrisng93/coffee-backend/db"
 
@@ -19,37 +19,41 @@ func getAndUpsertYelpData(databaseOps *db.DatabaseOps, yelpClient *yelp.Client) 
 	// about ways to better target certain areas of NYC/Brooklyn where there might be higher
 	// density of coffee shops that don't show up in these queries. Potentially search different
 	// neighborhoods rather than boroughs.
-	// TODO: Put these calls into goroutines.
-	bestCoffeeShopsYelpManhattan, err := yelpClient.SearchBusinesses(&yelp.SearchBusinessesParams{
-		Location:   "Lower Manhattan",
-		SearchTerm: "best coffee shops",
-		Categories: "coffee,coffeeroasteries",
-	})
-	if err != nil {
-		log.Printf("Error getting data from Yelp: %v", err)
+
+	queries := []*yelp.SearchBusinessesParams{
+		{
+			Location:   "Lower Manhattan",
+			SearchTerm: "best coffee shops",
+			Categories: "coffee,coffeeroasteries",
+		},
+		{
+			Location:   "Brooklyn",
+			SearchTerm: "best coffee shops",
+			Categories: "coffee,coffeeroasteries",
+		},
 	}
 
-	bestCoffeeShopsYelpBrooklyn, err := yelpClient.SearchBusinesses(&yelp.SearchBusinessesParams{
-		Location:   "Brooklyn",
-		SearchTerm: "best coffee shops",
-		Categories: "coffee,coffeeroasteries",
-	})
-	if err != nil {
-		log.Printf("Error getting data from Yelp: %v", err)
+	wg := &sync.WaitGroup{}
+	wg.Add(len(queries))
+	coffeeShopChan := make(chan []*yelp.Business, len(queries))
+	for _, searchParams := range queries {
+		go getCoffeeShops(wg, coffeeShopChan, yelpClient, searchParams)
+	}
+
+	wg.Wait()
+	close(coffeeShopChan)
+
+	var filteredCoffeeShopsYelp []*yelp.Business
+	for coffeeShops := range coffeeShopChan {
+		filteredCoffeeShopsYelp = append(filteredCoffeeShopsYelp, filterCoffeeShops(coffeeShops)...)
 	}
 
 	var coffeeShops []*models.CoffeeShop
 	// We use this to detect duplicates between the Lower Manhattan and Brooklyn queries.
 	yelpIDToSeen := map[string]bool{}
-	filteredCoffeeShopsYelp := filterCoffeeShops(bestCoffeeShopsYelpManhattan)
-	filteredCoffeeShopsYelp = append(
-		filteredCoffeeShopsYelp,
-		filterCoffeeShops(bestCoffeeShopsYelpBrooklyn)...,
-	)
 	for _, yelpCoffeeShop := range filteredCoffeeShopsYelp {
 		// If we've already seen this coffee shop (duplicate), then don't add it again.
 		if _, ok := yelpIDToSeen[yelpCoffeeShop.YelpID]; ok {
-			fmt.Println("dupe", yelpCoffeeShop.Name, yelpCoffeeShop.YelpID)
 			continue
 		}
 
@@ -66,6 +70,20 @@ func getAndUpsertYelpData(databaseOps *db.DatabaseOps, yelpClient *yelp.Client) 
 	}
 
 	return databaseOps.InsertOrUpdateCoffeeShops(coffeeShops)
+}
+
+func getCoffeeShops(
+	wg *sync.WaitGroup,
+	coffeeShopChan chan []*yelp.Business,
+	yelpClient *yelp.Client,
+	params *yelp.SearchBusinessesParams,
+) {
+	defer wg.Done()
+	bestCoffeeShopsYelp, err := yelpClient.SearchBusinesses(params)
+	if err != nil {
+		log.Printf("Error getting data from Yelp: %v", err)
+	}
+	coffeeShopChan <- bestCoffeeShopsYelp
 }
 
 func filterCoffeeShops(coffeeShops []*yelp.Business) []*yelp.Business {

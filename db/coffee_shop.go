@@ -19,7 +19,7 @@ func (ops *DatabaseOps) InsertOrUpdateCoffeeShops(coffeeShops []*models.CoffeeSh
 			// time-intensive. Change this to be a bulk upsert.
 			_, err := tx.Exec(
 				`INSERT INTO coffeeshop.shop (name, lat, lng, yelp_id, yelp_url)
-				 VALUES ($1, $2, $3, $4, $5, $6, $7)
+				 VALUES ($1, $2, $3, $4, $5)
 				 ON CONFLICT (yelp_id)
 				 DO UPDATE SET (name, lat, lng, yelp_url) = ($1, $2, $3, $5)`,
 				coffeeShop.Name,
