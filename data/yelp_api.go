@@ -19,7 +19,6 @@ func getAndUpsertYelpData(databaseOps *db.DatabaseOps, yelpClient *yelp.Client) 
 	// about ways to better target certain areas of NYC/Brooklyn where there might be higher
 	// density of coffee shops that don't show up in these queries. Potentially search different
 	// neighborhoods rather than boroughs.
-
 	queries := []*yelp.SearchBusinessesParams{
 		{
 			Location:   "Lower Manhattan",
@@ -49,7 +48,7 @@ func getAndUpsertYelpData(databaseOps *db.DatabaseOps, yelpClient *yelp.Client) 
 	}
 
 	var coffeeShops []*models.CoffeeShop
-	// We use this to detect duplicates between the Lower Manhattan and Brooklyn queries.
+	// We use this to detect duplicates between the queries.
 	yelpIDToSeen := map[string]bool{}
 	for _, yelpCoffeeShop := range filteredCoffeeShopsYelp {
 		// If we've already seen this coffee shop (duplicate), then don't add it again.
@@ -103,6 +102,6 @@ func includeCoffeeShop(coffeeShop *yelp.Business) bool {
 			return false
 		}
 	}
-	// TODO: Do a better job of this. This is very crude.
+	// TODO: Do a better job of this. This is very unrefined.
 	return (coffeeShop.Rating > 4 && coffeeShop.ReviewCount > 50) || coffeeShop.ReviewCount > 200
 }

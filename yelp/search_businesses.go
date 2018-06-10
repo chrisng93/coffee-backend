@@ -79,9 +79,6 @@ func (c *Client) SearchBusinesses(params *SearchBusinessesParams) ([]*Business, 
 		}
 
 		numTotalBusinesses = searchBusinessesResponse.Total
-		if int(numTotalBusinesses) == MaxResults {
-			fmt.Println("total businesses", searchBusinessesResponse.Total)
-		}
 		businesses = append(businesses, searchBusinessesResponse.Businesses...)
 		numTries++
 	}

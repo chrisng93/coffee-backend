@@ -1,7 +1,6 @@
 package data
 
 import (
-	"fmt"
 	"log"
 	"strings"
 	"sync"
@@ -36,18 +35,18 @@ func scrapeCoffeeShopYelpURLs(databaseOps *db.DatabaseOps) error {
 	wg.Add(len(coffeeShops))
 	// Use attributeChan to facilitate communication with goroutines used for scraping.
 	attributeChan := make(chan *yelpAttributes, len(coffeeShops))
-	// Create mapping of Yelp URL to pointer to coffee shop. Use this mapping for updating
-	// coffee shop's isGoodForStudying attribute.
+	// Create mapping of Yelp URL to pointer to coffee shop. Use this mapping later for getting
+	// the coffee shop associated with a Yelp URL.
 	yelpURLToCoffeeShop := map[string]*models.CoffeeShop{}
 	for _, coffeeShop := range coffeeShops {
 		go scrapeYelpURL(wg, coffeeShop.YelpURL, attributeChan)
+		// Pause for 500ms between requests so we don't bombard Yelp.
 		time.Sleep(500 * time.Millisecond)
 		yelpURLToCoffeeShop[coffeeShop.YelpURL] = coffeeShop
 	}
 
 	wg.Wait()
 	close(attributeChan)
-	fmt.Println("inserted stuff")
 
 	// We only want to update coffee shops that have an IsGoodForStudying attribute that has
 	// changed.
@@ -56,7 +55,6 @@ func scrapeCoffeeShopYelpURLs(databaseOps *db.DatabaseOps) error {
 		coffeeShop := yelpURLToCoffeeShop[yelpAttribute.yelpURL]
 		newIsGoodForStudying := yelpAttribute.isGoodForWorking && yelpAttribute.hasWifi
 		if coffeeShop.IsGoodForStudying != newIsGoodForStudying {
-			fmt.Println("coffee shop info changed", coffeeShop.Name)
 			coffeeShop.IsGoodForStudying = yelpAttribute.isGoodForWorking && yelpAttribute.hasWifi
 			changedCoffeeShops = append(changedCoffeeShops, coffeeShop)
 		}
@@ -94,7 +92,7 @@ func scrapeYelpURL(wg *sync.WaitGroup, yelpURL string, attributeChan chan *yelpA
 
 	c.OnError(func(_ *colly.Response, err error) {
 		defer wg.Done()
-		log.Println("Something went wrong:", err)
+		log.Printf("Error scraping Yelp URL: %v", err)
 	})
 }
 
