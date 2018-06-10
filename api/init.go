@@ -1,35 +1,18 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
 
-	"github.com/gorilla/mux"
-
 	"github.com/chrisng93/coffee-backend/db"
+
+	"github.com/gorilla/mux"
 )
 
 // Init initializes the router instance and sets handlers for the API.
 func Init(databaseOps *db.DatabaseOps) *mux.Router {
 	r := mux.NewRouter()
+	// TODO: Write higher order function to include databaseOps in handler.
 	r.HandleFunc("/coffee_shop", func(w http.ResponseWriter, r *http.Request) { getAllCoffeeShopsHandler(w, r, databaseOps) }).Methods("GET")
-	r.HandleFunc("/coffee_shop/{id}", getSingleCoffeeShopHandler).Methods("GET")
+	r.HandleFunc("/coffee_shop/{id}", func(w http.ResponseWriter, r *http.Request) { getSingleCoffeeShopHandler(w, r, databaseOps) }).Methods("GET")
 	return r
-}
-
-func getAllCoffeeShopsHandler(w http.ResponseWriter, r *http.Request, databaseOps *db.DatabaseOps) {
-	// TODO: Implement pagination and query params once we get more coffee shops.
-	coffeeShops, err := databaseOps.GetCoffeeShops()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(coffeeShops)
-}
-
-func getSingleCoffeeShopHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Endpoint not implemented."))
 }

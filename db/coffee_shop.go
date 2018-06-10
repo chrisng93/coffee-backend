@@ -44,6 +44,36 @@ func (ops *DatabaseOps) InsertOrUpdateCoffeeShops(coffeeShops []*models.CoffeeSh
 	return nil
 }
 
+// GetCoffeeShop gets a single coffee shop given its ID (from our database).
+// TODO: Potentially think about how to consolidate this and GetCoffeeShops. It may not be
+// necessary.
+func (ops *DatabaseOps) GetCoffeeShop(id int64) (*models.CoffeeShop, error) {
+	coffeeShop := &models.CoffeeShop{}
+	coffeeShop.Coordinates = &models.Coordinates{}
+	err := createTransaction(ops.db, func(tx *sql.Tx) error {
+		return tx.QueryRow(`
+			SELECT id, last_updated, name, lat, lng, yelp_id, yelp_url, has_good_coffee,
+				   is_good_for_studying
+			FROM coffeeshop.shop
+			WHERE id=$1
+		`, id).Scan(
+			&coffeeShop.ID,
+			&coffeeShop.LastUpdated,
+			&coffeeShop.Name,
+			&coffeeShop.Coordinates.Latitude,
+			&coffeeShop.Coordinates.Longitude,
+			&coffeeShop.YelpID,
+			&coffeeShop.YelpURL,
+			&coffeeShop.HasGoodCoffee,
+			&coffeeShop.IsGoodForStudying,
+		)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return coffeeShop, nil
+}
+
 // GetCoffeeShops gets all of the coffee shops in the database.
 func (ops *DatabaseOps) GetCoffeeShops() ([]*models.CoffeeShop, error) {
 	var coffeeShops []*models.CoffeeShop
