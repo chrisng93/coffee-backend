@@ -31,6 +31,7 @@ func getSingleCoffeeShopHandler(w http.ResponseWriter, r *http.Request, database
 		w.Write([]byte(err.Error()))
 		return
 	}
+
 	coffeeShop, err := databaseOps.GetCoffeeShop(id)
 	if coffeeShop.ID == 0 {
 		w.WriteHeader(http.StatusBadRequest)
