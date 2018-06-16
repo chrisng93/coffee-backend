@@ -1,8 +1,8 @@
 package data
 
 import (
+	"github.com/chrisng93/coffee-backend/clients/yelp"
 	"github.com/chrisng93/coffee-backend/db"
-	"github.com/chrisng93/coffee-backend/yelp"
 )
 
 // InitializeCronJobs initializes cron jobs to get data from Yelp and Instagram.

@@ -10,6 +10,8 @@ import (
 // MaxResults defines the maximum number of results Yelp allows you to see for one query.
 const MaxResults = 1000
 
+const searchBusinessesURL = "/v3/businesses/search"
+
 // SearchBusinessesParams defines the parameters used for calling Yelp's /v3/businesses/search
 // endpoint.
 type SearchBusinessesParams struct {
@@ -18,24 +20,10 @@ type SearchBusinessesParams struct {
 	Categories string
 }
 
-// SearchBusinessesResponse defines the response from calling Yelp's /v3/businesses/search endpoint.
-type SearchBusinessesResponse struct {
+// searchBusinessesResponse defines the response from calling Yelp's /v3/businesses/search endpoint.
+type searchBusinessesResponse struct {
 	Total      int64       `json:"total"`
 	Businesses []*Business `json:"businesses"`
-}
-
-// Business defines the information related to a Yelp business.
-type Business struct {
-	Name        string `json:"name"`
-	Coordinates struct {
-		Latitude  float64 `json:"latitude"`
-		Longitude float64 `json:"longitude"`
-	}
-	YelpID string `json:"id"`
-	// Rating and ReviewCount are used to filter for "good" coffee shops.
-	Rating      float64 `json:"rating"`
-	ReviewCount int64   `json:"review_count"`
-	URL         string  `json:"url"`
 }
 
 // SearchBusinesses calls Yelp's /v3/businesses/search endpoint to get a list of businesses.
@@ -48,10 +36,9 @@ func (c *Client) SearchBusinesses(params *SearchBusinessesParams) ([]*Business, 
 	var businesses []*Business
 
 	for (int64(len(businesses)) < numTotalBusinesses || numTries != 0) && numTries*limit < MaxResults {
-		// TODO: Add search filter and other params.
 		req, err := util.CreateGetRequest(&util.GetRequestParams{
 			BaseURL: c.baseURL,
-			Path:    "/v3/businesses/search",
+			Path:    searchBusinessesURL,
 			APIKey:  c.apiKey,
 			QueryParams: map[string]string{
 				"limit":    strconv.FormatInt(limit, 10),
@@ -72,7 +59,7 @@ func (c *Client) SearchBusinesses(params *SearchBusinessesParams) ([]*Business, 
 		if err != nil {
 			return nil, err
 		}
-		var searchBusinessesResponse SearchBusinessesResponse
+		var searchBusinessesResponse searchBusinessesResponse
 		err = util.UnmarshalResponseBody(resp, &searchBusinessesResponse)
 		if err != nil {
 			return nil, err

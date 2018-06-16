@@ -4,9 +4,9 @@ import (
 	"log"
 	"sync"
 
+	"github.com/chrisng93/coffee-backend/clients/yelp"
 	"github.com/chrisng93/coffee-backend/db"
 	"github.com/chrisng93/coffee-backend/models"
-	"github.com/chrisng93/coffee-backend/yelp"
 )
 
 // ExcludedCoffeeShops is a list of coffee shops not to include.

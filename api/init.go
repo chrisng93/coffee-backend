@@ -1,18 +1,21 @@
 package api
 
 import (
-	"net/http"
-
-	"github.com/chrisng93/coffee-backend/db"
-
 	"github.com/gorilla/mux"
+
+	"github.com/chrisng93/coffee-backend/clients/yelp"
+	"github.com/chrisng93/coffee-backend/db"
 )
 
+var databaseOps *db.DatabaseOps
+var yelpClient *yelp.Client
+
 // Init initializes the router instance and sets handlers for the API.
-func Init(databaseOps *db.DatabaseOps) *mux.Router {
+func Init(dbops *db.DatabaseOps, yc *yelp.Client) *mux.Router {
 	r := mux.NewRouter()
-	// TODO: Write higher order function to include databaseOps in handler.
-	r.HandleFunc("/coffee_shop", func(w http.ResponseWriter, r *http.Request) { getAllCoffeeShopsHandler(w, r, databaseOps) }).Methods("GET")
-	r.HandleFunc("/coffee_shop/{id}", func(w http.ResponseWriter, r *http.Request) { getSingleCoffeeShopHandler(w, r, databaseOps) }).Methods("GET")
+	databaseOps = dbops
+	yelpClient = yc
+	r.HandleFunc("/coffee_shop", getAllCoffeeShopsHandler).Methods("GET")
+	r.HandleFunc("/coffee_shop/{id}", getSingleCoffeeShopHandler).Methods("GET")
 	return r
 }

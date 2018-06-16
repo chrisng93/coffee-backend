@@ -1,6 +1,8 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
 // Coordinates defines lat/lng coordinates.
 type Coordinates struct {
@@ -18,7 +20,27 @@ type CoffeeShop struct {
 	YelpURL           string       `json:"yelp_url"`
 	HasGoodCoffee     bool         `json:"has_good_coffee"`
 	IsGoodForStudying bool         `json:"is_good_for_studying"`
+	// Keys below are added through the Yelp business details endpoint.
+	Photos   []string `json:"photos"`
+	Location struct {
+		DisplayAddress []string `json:"display_address"`
+	} `json:"location"`
+	Price string   `json:"price"`
+	Phone string   `json:"phone"`
+	Hours []*Hours `json:"hours"`
 	// TODO: Add these fields when Instagram added.
 	// IsInstagrammable bool `json:"is_instagrammable"`
 	// InstagramID *string `json:"instagram_id"`
+}
+
+// Hours defines a set of operating hours for a Yelp business.
+type Hours struct {
+	HoursType string `json:"hours_type"`
+	Open      []struct {
+		IsOvernight bool   `json:"is_overnight"`
+		Start       string `json:"start"`
+		End         string `json:"end"`
+		Day         int64  `json:"day"`
+	} `json:"open"`
+	IsOpenNow bool `json:"is_open_now"`
 }
