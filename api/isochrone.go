@@ -11,14 +11,14 @@ import (
 	"googlemaps.github.io/maps"
 )
 
-// AvgWalkingSpeedMetersPerMin is the average walking speed in meters per minute.
-const AvgWalkingSpeedMetersPerMin = 134
+// AvgWalkingSpeedMilesPerHour is the average walking speed in miles per hour.
+const AvgWalkingSpeedMilesPerHour = 5
 
 // NumOfAngles is the number of angles at which we calculate an isochrone.
-const NumOfAngles = 6
+const NumOfAngles = 12
 
 // Tolerance is the percentage error we allow when finding travel times for an isochrone.
-const Tolerance = 0.33
+const Tolerance = 0.05
 
 // EarthRadiusMiles is Earth's radius in miles. Used for Haversine formula.
 const EarthRadiusMiles = 3961
@@ -108,27 +108,29 @@ func calculateIsochrones(
 	origin *models.Coordinates,
 	walkingTimeMin int64,
 ) ([][]float64, error) {
-	duration := float64(walkingTimeMin) / float64(AvgWalkingSpeedMetersPerMin)
-	// TODO: radius2, radius1, phi1, radius0, radiusMin, radiusMax comments
-	var radius0, radius1, radius2, phi1, radiusMin, radiusMax []float64
+	var radius0, radius1, radius2, angles, radiusMin, radiusMax []float64
 	var addresses0 []string
-	// TODO: iso comment
 	var iso [][]float64
 	for i := 0; i < NumOfAngles; i++ {
+		// The radius slices are used to ___
 		radius0 = append(radius0, 0)
-		radius1 = append(radius1, duration)
+		radius1 = append(radius1, float64(walkingTimeMin)*float64(AvgWalkingSpeedMilesPerHour)/60)
 		radius2 = append(radius2, 0)
-		phi1 = append(phi1, float64(i*(360/NumOfAngles)))
+		// angles is used to ___
+		angles = append(angles, float64(i*(360/NumOfAngles)))
+		// addresses0 used to ___
 		addresses0 = append(addresses0, "")
+		// radiusMin and radiusMax used to ___
 		radiusMin = append(radiusMin, 0)
-		radiusMax = append(radiusMax, float64(AvgWalkingSpeedMetersPerMin)/60*float64(walkingTimeMin))
+		radiusMax = append(radiusMax, float64(AvgWalkingSpeedMilesPerHour)/60*float64(walkingTimeMin))
+		// iso used to ___
 		iso = append(iso, []float64{0, 0})
 	}
 
 	j := 0
 	for sumOfRadiusDifferences(radius0, radius1) != 0 {
 		for i := 0; i < NumOfAngles; i++ {
-			iso[i] = calculateLatLng(origin, radius1[i], phi1[i])
+			iso[i] = calculateLatLng(origin, radius1[i], angles[i])
 		}
 		addresses, durations, err := getDistanceMatrixResponse(googleMapsClient, origin, iso)
 		if err != nil {

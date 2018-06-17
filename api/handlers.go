@@ -103,7 +103,7 @@ func getIsochronesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Format travel time.
-	walkingTimeMinString := r.URL.Query().Get("travel_time_min")
+	walkingTimeMinString := r.URL.Query().Get("walking_time_min")
 	if walkingTimeMinString == "" {
 		walkingTimeMinString = fmt.Sprintf("%v", DefaultWalkingTimeMin)
 	}
