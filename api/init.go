@@ -21,5 +21,6 @@ func Init(dbops *db.DatabaseOps, yc *yelp.Client, gm *maps.Client) *mux.Router {
 
 	r.HandleFunc("/coffee_shop", getAllCoffeeShopsHandler).Methods("GET")
 	r.HandleFunc("/coffee_shop/{id}", getSingleCoffeeShopHandler).Methods("GET")
+	r.HandleFunc("/isochrone", getIsochronesHandler).Methods("GET")
 	return r
 }
