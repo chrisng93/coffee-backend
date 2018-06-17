@@ -6,8 +6,10 @@ import (
 	"net/http"
 
 	flags "github.com/jessevdk/go-flags"
+	"googlemaps.github.io/maps"
 
 	"github.com/chrisng93/coffee-backend/api"
+	"github.com/chrisng93/coffee-backend/clients/googlemaps"
 	"github.com/chrisng93/coffee-backend/clients/yelp"
 	"github.com/chrisng93/coffee-backend/data"
 	"github.com/chrisng93/coffee-backend/db"
@@ -21,12 +23,14 @@ type flagOptions struct {
 // Flag options for app and API clients.
 type combinedOptions struct {
 	flagOptions
-	yelp.YelpFlagOptions
 	db.DatabaseFlagOptions
+	yelp.YelpFlagOptions
+	googlemaps.GoogleMapsFlagOptions
 }
 
 var options combinedOptions
 var yelpClient *yelp.Client
+var googleMapsClient *maps.Client
 
 func main() {
 	// Parse flags.
@@ -48,11 +52,17 @@ func main() {
 		log.Fatalf("Error initializing Yelp client: %v", err)
 	}
 
+	// Initialize Google Maps API.
+	googleMapsClient, err = googlemaps.InitClient(&options.GoogleMapsFlagOptions)
+	if err != nil {
+		log.Fatalf("Error initializing Google Maps client: %v", err)
+	}
+
 	// Start cron jobs for getting data from Yelp and Instagram.
 	go data.InitializeCronJobs(databaseOps, yelpClient)
 
 	// Initialize router.
-	router := api.Init(databaseOps, yelpClient)
+	router := api.Init(databaseOps, yelpClient, googleMapsClient)
 	err = http.ListenAndServe(fmt.Sprintf(":%s", options.Port), corsMiddleware(router))
 	if err != nil {
 		log.Fatalf("Error starting server: %v", err)

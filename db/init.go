@@ -41,7 +41,5 @@ func Init(options *DatabaseFlagOptions) (*DatabaseOps, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &DatabaseOps{
-		db: db,
-	}, nil
+	return &DatabaseOps{db: db}, nil
 }
