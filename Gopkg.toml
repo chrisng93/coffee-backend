@@ -48,3 +48,7 @@
 [[constraint]]
   branch = "master"
   name = "googlemaps.github.io/maps"
+
+[[constraint]]
+  name = "github.com/robfig/cron"
+  version = "1.1.0"

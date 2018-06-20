@@ -101,6 +101,11 @@ func includeCoffeeShop(coffeeShop *yelp.Business) bool {
 			return false
 		}
 	}
+	// Most coffee shops that we're interested in don't have more than 3 categories - they're more
+	// refined in their foucs.
+	if len(coffeeShop.Categories) > 3 {
+		return false
+	}
 	// TODO: Do a better job of this. This is very unrefined.
 	return (coffeeShop.Rating > 4 && coffeeShop.ReviewCount > 50) || coffeeShop.ReviewCount > 200
 }
