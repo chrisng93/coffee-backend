@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -14,11 +15,15 @@ import (
 // AvgWalkingSpeedMilesPerHour is the average walking speed in miles per hour.
 const AvgWalkingSpeedMilesPerHour = 5
 
+// FastestWalkingSpeedMilesPerHour is the upper limit on walking speed for humans in miles per
+// hour. The Guinness World Record is 9.17 miles per hour.
+const FastestWalkingSpeedMilesPerHour = 8
+
 // NumOfAngles is the number of angles at which we calculate an isochrone.
 const NumOfAngles = 12
 
 // Tolerance is the percentage error we allow when finding travel times for an isochrone.
-const Tolerance = 0.05
+const Tolerance = 0.10
 
 // EarthRadiusMiles is Earth's radius in miles. Used for Haversine formula.
 const EarthRadiusMiles = 3961
@@ -85,7 +90,7 @@ func getDistanceMatrixResponse(
 	req := &maps.DistanceMatrixRequest{
 		Origins:      []string{coordinatesToString(origin.Latitude, origin.Longitude)},
 		Destinations: []string{strings.Join(destinationSlice, "|")},
-		Mode:         "ModeWalking",
+		Mode:         maps.TravelModeWalking,
 	}
 	resp, err := googleMapsClient.DistanceMatrix(context.Background(), req)
 	if err != nil {
@@ -108,31 +113,32 @@ func calculateIsochrones(
 	origin *models.Coordinates,
 	walkingTimeMin int64,
 ) ([][]float64, error) {
-	var radius0, radius1, radius2, angles, radiusMin, radiusMax []float64
+	var radius0, radius1, angles, radiusMin, radiusMax []float64
 	var addresses0 []string
 	var iso [][]float64
 	for i := 0; i < NumOfAngles; i++ {
 		// The radius slices are used to ___
 		radius0 = append(radius0, 0)
 		radius1 = append(radius1, float64(walkingTimeMin)*float64(AvgWalkingSpeedMilesPerHour)/60)
-		radius2 = append(radius2, 0)
 		// angles is used to ___
 		angles = append(angles, float64(i*(360/NumOfAngles)))
 		// addresses0 used to ___
 		addresses0 = append(addresses0, "")
 		// radiusMin and radiusMax used to ___
 		radiusMin = append(radiusMin, 0)
-		radiusMax = append(radiusMax, float64(AvgWalkingSpeedMilesPerHour)/60*float64(walkingTimeMin))
+		radiusMax = append(radiusMax, float64(FastestWalkingSpeedMilesPerHour)/60*float64(walkingTimeMin))
 		// iso used to ___
 		iso = append(iso, []float64{0, 0})
 	}
 
 	j := 0
 	for sumOfRadiusDifferences(radius0, radius1) != 0 {
+		var tempRadius []float64
 		for i := 0; i < NumOfAngles; i++ {
 			iso[i] = calculateLatLng(origin, radius1[i], angles[i])
 		}
 		addresses, durations, err := getDistanceMatrixResponse(googleMapsClient, origin, iso)
+		fmt.Println("found durations", durations)
 		if err != nil {
 			return nil, err
 		}
@@ -140,21 +146,20 @@ func calculateIsochrones(
 			return [][]float64{}, nil
 		}
 		for i := 0; i < NumOfAngles; i++ {
-			if durations[i] < (float64(walkingTimeMin)-float64(walkingTimeMin)*Tolerance) &&
-				addresses0[i] != addresses[i] {
-				radius2[i] = (radiusMax[i] + radius1[i]) / 2
+			fmt.Println("checking duration", durations[i])
+			if durations[i] < (float64(walkingTimeMin) - float64(walkingTimeMin)*Tolerance) {
+				tempRadius = append(tempRadius, (radiusMax[i]+radius1[i])/2)
 				radiusMin[i] = radius1[i]
-			} else if durations[i] > (float64(walkingTimeMin)+float64(walkingTimeMin)*Tolerance) &&
-				addresses0[i] != addresses[i] {
-				radius2[i] = (radiusMin[i] + radius1[i]) / 2
+			} else if durations[i] > (float64(walkingTimeMin) + float64(walkingTimeMin)*Tolerance) {
+				tempRadius = append(tempRadius, (radiusMin[i]+radius1[i])/2)
 				radiusMax[i] = radius1[i]
 			} else {
-				radius2[i] = radius1[i]
+				tempRadius = append(tempRadius, radius1[i])
 			}
 			addresses0[i] = addresses[i]
 		}
 		radius0 = radius1
-		radius1 = radius2
+		radius1 = tempRadius
 		j++
 		if j > 30 {
 			return nil, errors.New("Isochrone calculation taking too long")
