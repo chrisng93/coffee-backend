@@ -12,6 +12,9 @@ import (
 	"googlemaps.github.io/maps"
 )
 
+// MaxTries is the maximum number of isochrone calculating cycles before we error out.
+const MaxTries = 30
+
 // AvgWalkingSpeedMilesPerHour is the average walking speed in miles per hour.
 const AvgWalkingSpeedMilesPerHour = 5
 
@@ -27,26 +30,6 @@ const Tolerance = 0.10
 
 // EarthRadiusMiles is Earth's radius in miles. Used for Haversine formula.
 const EarthRadiusMiles = 3961
-
-func zip(x, y []float64) [][]float64 {
-	output := make([][]float64, len(x))
-	for i := 0; i < len(x); i++ {
-		output[i] = []float64{x[i], y[i]}
-	}
-	return output
-}
-
-func numRadiusDiffs(radius0, radius1 []float64) float64 {
-	// Create slice where each index has a slice with a radius0 value and a radius1 value.
-	zippedRadiuses := zip(radius0, radius1)
-	diffs := float64(0)
-	for _, radii := range zippedRadiuses {
-		if radii[0] != radii[1] {
-			diffs++
-		}
-	}
-	return diffs
-}
 
 func degreesToRadians(angle float64) float64 {
 	return angle * math.Pi / 180
@@ -117,8 +100,8 @@ func calculateIsochrones(
 	origin *models.Coordinates,
 	walkingTimeMin int64,
 ) ([][]float64, error) {
-	var radius0, radius1, angles, radiusMin, radiusMax []float64
-	var iso [][]float64
+	var radius0, radius1, angles, radiusMin, radiusMax, durations []float64
+	var isochrone [][]float64
 	for i := 0; i < NumOfAngles; i++ {
 		// Radius slices are used to hold the radius distance from the origin for each angle that
 		// we calculate isochrones for. These values are updated on each incremental calculation
@@ -132,20 +115,28 @@ func calculateIsochrones(
 		// They're narrowed down in the isochrone calculation process.
 		radiusMin = append(radiusMin, 0)
 		radiusMax = append(radiusMax, float64(FastestWalkingSpeedMilesPerHour)/60*float64(walkingTimeMin))
-		// iso holds the lat/lng of the radii.
-		iso = append(iso, []float64{0, 0})
+		// durations is used to hold the walking durations from the Google Maps API for the
+		// respective radius.
+		durations = append(durations, 0)
+		// isochrone holds the lat/lng of the radii.
+		isochrone = append(isochrone, []float64{0, 0})
 	}
 
 	j := 0
-	for numRadiusDiffs(radius0, radius1) > 0 {
+	radiusDiffs := NumOfAngles
+	// Allow for one radius diff to be greater than tolerance to lower response time. Throw this
+	// value (if any) out later.
+	for radiusDiffs > 1 {
 		var tempRadius []float64
+		radiusDiffs = 0
 		// Use Haversine formula to calculate lat/lng for radius/angles from origin.
 		for i := 0; i < NumOfAngles; i++ {
-			iso[i] = calculateLatLng(origin, radius1[i], angles[i])
+			isochrone[i] = calculateLatLng(origin, radius1[i], angles[i])
 		}
+		var err error
 		// Call Google Maps Distance Matrix API to get the actual walking distance from the origin
 		// for each of the lat/lngs calculated above.
-		durations, err := getDistanceMatrixResponse(googleMapsClient, origin, iso)
+		durations, err = getDistanceMatrixResponse(googleMapsClient, origin, isochrone)
 		fmt.Println("found durations", durations)
 		if err != nil {
 			// TODO: Different message if over Google Maps API quota.
@@ -158,12 +149,14 @@ func calculateIsochrones(
 			fmt.Println("checking duration", durations[i])
 			if durations[i] < (float64(walkingTimeMin) - float64(walkingTimeMin)*Tolerance) {
 				// Actual walking time below the tolerance. Increase the radius.
-				tempRadius = append(tempRadius, determineNewRadius(radiusMax[i], radius1[i]))
+				tempRadius = append(tempRadius, (radiusMax[i]+radius1[i])/2)
 				radiusMin[i] = radius1[i]
+				radiusDiffs++
 			} else if durations[i] > (float64(walkingTimeMin) + float64(walkingTimeMin)*Tolerance) {
-				// Actual walking time above the tolernace. Reduce the radius.
-				tempRadius = append(tempRadius, determineNewRadius(radiusMin[i], radius1[i]))
+				// Actual walking time above the tolerance. Reduce the radius.
+				tempRadius = append(tempRadius, (radiusMin[i]+radius1[i])/2)
 				radiusMax[i] = radius1[i]
+				radiusDiffs++
 			} else {
 				tempRadius = append(tempRadius, radius1[i])
 			}
@@ -171,31 +164,25 @@ func calculateIsochrones(
 		radius0 = radius1
 		radius1 = tempRadius
 		j++
-		if j > 30 {
+		if j > MaxTries {
 			return nil, errors.New("Isochrone calculation taking too long")
 		}
 	}
-	return iso, nil
+	if radiusDiffs > 0 {
+		return filterIsochrones(walkingTimeMin, isochrone, durations), nil
+	}
+	return isochrone, nil
 }
 
-// Determine the new radius for a given angle. If the differences are big between min/max and
-// actual radius, then weight the return value closer to the min/max. This solves for issues
-// such as origins near the water - a 30 minute walk might bring you deep into the ocean, and
-// in reality you'd only be able to do a 5 walk to the shore.
-func determineNewRadius(minMax, actual float64) float64 {
-	diff := math.Abs(minMax - actual)
-	percentDifference := diff / actual
-	// The bigger the percentage difference between min/max and actual, the more we weight the
-	// new radius towards the min/max.
-	var ratio float64
-	if percentDifference < 0.1 {
-		ratio = 0.5
-	} else if percentDifference < 0.3 {
-		ratio = 0.6
-	} else if percentDifference < 0.5 {
-		ratio = 0.7
-	} else {
-		ratio = 0.8
+// Filter out isochrones for any lat/lngs that aren't within tolerance. This is needed because we
+// allow up to one value to be outside of the tolerance range to speed up response times.
+func filterIsochrones(walkingTimeMin int64, isochrone [][]float64, durations []float64) [][]float64 {
+	var filteredIsochrone [][]float64
+	for i, duration := range durations {
+		if duration >= float64(walkingTimeMin)-float64(walkingTimeMin)*Tolerance &&
+			duration <= float64(walkingTimeMin)+float64(walkingTimeMin)*Tolerance {
+			filteredIsochrone = append(filteredIsochrone, isochrone[i])
+		}
 	}
-	return minMax*ratio + actual*(1-ratio)
+	return filteredIsochrone
 }
