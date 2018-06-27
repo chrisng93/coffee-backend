@@ -137,8 +137,9 @@ func calculateIsochrones(
 		// for each of the lat/lngs calculated above.
 		durations, err = getDistanceMatrixResponse(googleMapsClient, origin, isochrone)
 		if err != nil {
-			// TODO: Different message if over Google Maps API quota.
-			return nil, err
+			// TODO: Right now we assume it's an over query limit error. This won't always be the
+			// case (although it generally is right now).
+			return nil, errors.New("over google maps query limit")
 		}
 		if len(durations) == 0 {
 			return [][]float64{}, nil
