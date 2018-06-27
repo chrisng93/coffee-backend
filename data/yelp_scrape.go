@@ -21,11 +21,7 @@ type yelpAttributes struct {
 }
 
 func scrapeCoffeeShopYelpURLs(databaseOps *db.DatabaseOps) error {
-	// TODO: Get all coffee shops, scrape their Yelp URL to see if study friendly.
-	// Get all coffee shops (db call)
-	// For each coffee shop, scrape their Yelp URL. Get info on "good for studying" and "wifi"
-	// Update coffee shops (db call)
-
+	log.Println("Scraping Yelp pages to get coffee shop data...")
 	coffeeShops, err := databaseOps.GetCoffeeShops()
 	if err != nil {
 		return err
@@ -60,6 +56,7 @@ func scrapeCoffeeShopYelpURLs(databaseOps *db.DatabaseOps) error {
 		}
 	}
 
+	log.Printf("Scraped %v coffee shop's Yelp pages...", len(coffeeShops))
 	return databaseOps.UpdateCoffeeShops(changedCoffeeShops)
 }
 

@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -137,7 +136,6 @@ func calculateIsochrones(
 		// Call Google Maps Distance Matrix API to get the actual walking distance from the origin
 		// for each of the lat/lngs calculated above.
 		durations, err = getDistanceMatrixResponse(googleMapsClient, origin, isochrone)
-		fmt.Println("found durations", durations)
 		if err != nil {
 			// TODO: Different message if over Google Maps API quota.
 			return nil, err
@@ -146,7 +144,6 @@ func calculateIsochrones(
 			return [][]float64{}, nil
 		}
 		for i := 0; i < NumOfAngles; i++ {
-			fmt.Println("checking duration", durations[i])
 			if durations[i] < (float64(walkingTimeMin) - float64(walkingTimeMin)*Tolerance) {
 				// Actual walking time below the tolerance. Increase the radius.
 				tempRadius = append(tempRadius, (radiusMax[i]+radius1[i])/2)

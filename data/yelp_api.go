@@ -18,6 +18,7 @@ func getAndUpsertYelpData(databaseOps *db.DatabaseOps, yelpClient *yelp.Client) 
 	// about ways to better target certain areas of NYC/Brooklyn where there might be higher
 	// density of coffee shops that don't show up in these queries. Potentially search different
 	// neighborhoods rather than boroughs.
+	log.Println("Calling Yelp API to get coffee shop data...")
 	queries := []*yelp.SearchBusinessesParams{
 		{
 			Location:   "Lower Manhattan",
@@ -67,6 +68,7 @@ func getAndUpsertYelpData(databaseOps *db.DatabaseOps, yelpClient *yelp.Client) 
 		yelpIDToSeen[yelpCoffeeShop.YelpID] = true
 	}
 
+	log.Printf("Processed %v coffee shops from Yelp...", len(filteredCoffeeShopsYelp))
 	return databaseOps.InsertOrUpdateCoffeeShops(coffeeShops)
 }
 

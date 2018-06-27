@@ -66,6 +66,8 @@ func main() {
 	err = http.ListenAndServe(fmt.Sprintf(":%s", options.Port), corsMiddleware(router))
 	if err != nil {
 		log.Fatalf("Error starting server: %v", err)
+	} else {
+		log.Printf("Started server on port %v", options.Port)
 	}
 }
 

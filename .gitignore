@@ -1,2 +1,4 @@
 vendor/
-run.txt
+*_test.txt
+*.env
+main
