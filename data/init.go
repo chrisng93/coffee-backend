@@ -33,16 +33,16 @@ func InitializeCronJobs(databaseOps *db.DatabaseOps, yelpClient *yelp.Client) {
 	// TODO: Create cron job to call Instagram's API.
 
 	// Populate database on startup.
-	err := getAndUpsertYelpData(databaseOps, yelpClient)
-	if err != nil {
-		log.Print(err)
-	} else {
-		log.Print("Successfully upserted Yelp data.")
-	}
-	err = scrapeCoffeeShopYelpURLs(databaseOps)
-	if err != nil {
-		log.Print(err)
-	} else {
-		log.Printf("Successfully scraped Yelp URLs")
-	}
+	// err := getAndUpsertYelpData(databaseOps, yelpClient)
+	// if err != nil {
+	// 	log.Print(err)
+	// } else {
+	// 	log.Print("Successfully upserted Yelp data.")
+	// }
+	// err = scrapeCoffeeShopYelpURLs(databaseOps)
+	// if err != nil {
+	// 	log.Print(err)
+	// } else {
+	// 	log.Printf("Successfully scraped Yelp URLs")
+	// }
 }

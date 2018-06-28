@@ -3,10 +3,12 @@ package api
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
 
+	"github.com/chrisng93/coffee-backend/clients/googlemaps"
 	"github.com/chrisng93/coffee-backend/models"
 	"googlemaps.github.io/maps"
 )
@@ -64,7 +66,6 @@ func coordinatesToString(lat float64, lng float64) string {
 }
 
 func getDistanceMatrixResponse(
-	googleMapsClient *maps.Client,
 	origin *models.Coordinates,
 	iso [][]float64,
 ) ([]float64, error) {
@@ -79,6 +80,17 @@ func getDistanceMatrixResponse(
 		Mode:         maps.TravelModeWalking,
 	}
 	resp, err := googleMapsClient.DistanceMatrix(context.Background(), req)
+
+	// Rotate client if we're over our limit.
+	if err != nil && strings.Contains(err.Error(), "OVER_QUERY_LIMIT") {
+		fmt.Println(err.Error())
+		googleMapsClient, err = googlemaps.RotateClient()
+		if err != nil {
+			return nil, err
+		}
+		return getDistanceMatrixResponse(origin, iso)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +107,6 @@ func getDistanceMatrixResponse(
 }
 
 func calculateIsochrones(
-	googleMapsClient *maps.Client,
 	origin *models.Coordinates,
 	walkingTimeMin int64,
 ) ([][]float64, error) {
@@ -135,11 +146,9 @@ func calculateIsochrones(
 		var err error
 		// Call Google Maps Distance Matrix API to get the actual walking distance from the origin
 		// for each of the lat/lngs calculated above.
-		durations, err = getDistanceMatrixResponse(googleMapsClient, origin, isochrone)
+		durations, err = getDistanceMatrixResponse(origin, isochrone)
 		if err != nil {
-			// TODO: Right now we assume it's an over query limit error. This won't always be the
-			// case (although it generally is right now).
-			return nil, errors.New("over google maps query limit")
+			return nil, err
 		}
 		if len(durations) == 0 {
 			return [][]float64{}, nil

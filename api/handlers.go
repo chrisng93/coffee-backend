@@ -113,7 +113,7 @@ func getIsochronesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	iso, err := calculateIsochrones(googleMapsClient, origin, walkingTimeMin)
+	iso, err := calculateIsochrones(origin, walkingTimeMin)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
