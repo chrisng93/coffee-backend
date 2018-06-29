@@ -8,6 +8,7 @@ RUN mkdir -p /go/src/github.com/chrisng93/coffee-backend
 WORKDIR /go/src/github.com/chrisng93/coffee-backend
 
 COPY . .
+RUN dep ensure
 
 # Build and run app
 RUN go build -o main .
