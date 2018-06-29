@@ -1,4 +1,4 @@
-# Cofee Around Me - Backend
+# Coffee Around Me - Backend
 
 ## Setting up your technologies.
 Make sure you have Go and Postgres installed.
