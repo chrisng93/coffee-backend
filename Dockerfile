@@ -1,8 +1,6 @@
 # Use current version of go
 FROM golang:latest 
 
-MAINTAINER Chris Ng, chris.ng93@gmail.com
-
 # Install dependency tool
 RUN go get github.com/golang/dep && go install github.com/golang/dep/cmd/dep
 

@@ -6,7 +6,7 @@ services:
     depends_on:
       - postgres
     ports:
-      - "8080:8080"
+      - "80:80"
   postgres:
     image: postgres:latest
     restart: always
