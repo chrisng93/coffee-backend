@@ -18,5 +18,5 @@ dep ensure
 ```
 1. Run the following command from the root directory to start the server:
 ```
-go run main.go --port=${port} --db_user=${db_user} --db_password=${db_password} --yelp_client_id=${yelp_client_id} --yelp_api_key=${yelp_api_key} --google_maps_api_key=${google_maps_api_key}
+go run main.go --port=${port} --db_user=${db_user} --db_password=${db_password} --db_name=${db_name} --yelp_client_id=${yelp_client_id} --yelp_api_key=${yelp_api_key} --google_maps_api_key=${google_maps_api_key}
 ```
