@@ -3,11 +3,15 @@ FROM golang:latest
 
 MAINTAINER Chris Ng, chris.ng93@gmail.com
 
+# Install dependency tool
+RUN go get github.com/golang/dep && go install github.com/golang/dep/cmd/dep
+
 # Create app directory
 RUN mkdir -p /go/src/github.com/chrisng93/coffee-backend
 WORKDIR /go/src/github.com/chrisng93/coffee-backend
 
 COPY . .
+RUN dep ensure
 
 # Build and run app
 RUN go build -o main .
