@@ -27,7 +27,7 @@ const FastestWalkingSpeedMilesPerHour = 8
 const NumOfAngles = 12
 
 // Tolerance is the percentage error we allow when finding travel times for an isochrone.
-const Tolerance = 0.10
+const Tolerance = 0.15
 
 // EarthRadiusMiles is Earth's radius in miles. Used for Haversine formula.
 const EarthRadiusMiles = 3961
@@ -136,7 +136,7 @@ func calculateIsochrones(
 	radiusDiffs := NumOfAngles
 	// Allow for one radius diff to be greater than tolerance to lower response time. Throw this
 	// value (if any) out later.
-	for radiusDiffs > 1 {
+	for radiusDiffs > 2 {
 		var tempRadius []float64
 		radiusDiffs = 0
 		// Use Haversine formula to calculate lat/lng for radius/angles from origin.
