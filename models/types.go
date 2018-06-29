@@ -23,6 +23,7 @@ type CoffeeShop struct {
 	// Keys below are added through the Yelp business details endpoint.
 	Photos   []string `json:"photos"`
 	Location struct {
+		State          string   `json:"state"`
 		DisplayAddress []string `json:"display_address"`
 	} `json:"location"`
 	Price string   `json:"price"`

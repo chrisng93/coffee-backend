@@ -3,6 +3,7 @@ package data
 import (
 	"log"
 	"sync"
+	"time"
 
 	"github.com/chrisng93/coffee-backend/clients/yelp"
 	"github.com/chrisng93/coffee-backend/db"
@@ -12,6 +13,9 @@ import (
 // ExcludedCoffeeShops is a list of coffee shops not to include.
 var ExcludedCoffeeShops = []string{"Starbucks", "Dunkin' Donuts"}
 
+// Neighborhoods defines which neighboords to look at coffee shops in.
+var Neighborhoods = []string{"Lower Manhattan", "Williamsburg", "Greenpoint"}
+
 func getAndUpsertYelpData(databaseOps *db.DatabaseOps, yelpClient *yelp.Client) error {
 	// TODO: We have 5000 calls to the Yelp API every day. Right now, these two calls hit their
 	// API ~100x, and each call gets more than the max amount (1000) of results from Yelp. Think
@@ -19,23 +23,20 @@ func getAndUpsertYelpData(databaseOps *db.DatabaseOps, yelpClient *yelp.Client) 
 	// density of coffee shops that don't show up in these queries. Potentially search different
 	// neighborhoods rather than boroughs.
 	log.Println("Calling Yelp API to get coffee shop data...")
-	queries := []*yelp.SearchBusinessesParams{
-		{
-			Location:   "Lower Manhattan",
+	var queries []*yelp.SearchBusinessesParams
+	for _, neighborhood := range Neighborhoods {
+		queries = append(queries, &yelp.SearchBusinessesParams{
+			Location:   neighborhood,
 			SearchTerm: "best coffee shops",
 			Categories: "coffee,coffeeroasteries",
-		},
-		{
-			Location:   "Brooklyn",
-			SearchTerm: "best coffee shops",
-			Categories: "coffee,coffeeroasteries",
-		},
+		})
 	}
 
 	wg := &sync.WaitGroup{}
 	wg.Add(len(queries))
 	coffeeShopChan := make(chan []*yelp.Business, len(queries))
 	for _, searchParams := range queries {
+		time.Sleep(10 * time.Second)
 		go getCoffeeShops(wg, coffeeShopChan, yelpClient, searchParams)
 	}
 
@@ -97,6 +98,10 @@ func filterCoffeeShops(coffeeShops []*yelp.Business) []*yelp.Business {
 }
 
 func includeCoffeeShop(coffeeShop *yelp.Business) bool {
+	// Only NY for now.
+	if coffeeShop.Location.State != "NY" {
+		return false
+	}
 	for _, excludedCoffeeShop := range ExcludedCoffeeShops {
 		// Don't inlcude coffee shop if it appears in the excluded coffee shop list.
 		if coffeeShop.Name == excludedCoffeeShop {
@@ -107,6 +112,12 @@ func includeCoffeeShop(coffeeShop *yelp.Business) bool {
 	// refined in their foucs.
 	if len(coffeeShop.Categories) > 3 {
 		return false
+	}
+	for _, category := range coffeeShop.Categories {
+		// Random ice cream shops show up as coffee shops as well.
+		if category.Alias == "icecream" {
+			return false
+		}
 	}
 	// TODO: Do a better job of this. This is very unrefined.
 	return (coffeeShop.Rating > 4 && coffeeShop.ReviewCount > 50) || coffeeShop.ReviewCount > 200
