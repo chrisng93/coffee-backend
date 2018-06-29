@@ -1,6 +1,8 @@
 package api
 
 import (
+	"net/http"
+
 	"github.com/gorilla/mux"
 	"googlemaps.github.io/maps"
 
@@ -19,6 +21,7 @@ func Init(dbops *db.DatabaseOps, yc *yelp.Client, gm *maps.Client) *mux.Router {
 	yelpClient = yc
 	googleMapsClient = gm
 
+	r.HandleFunc("/healthy", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) })
 	r.HandleFunc("/coffee_shop", getAllCoffeeShopsHandler).Methods("GET")
 	r.HandleFunc("/coffee_shop/{id}", getSingleCoffeeShopHandler).Methods("GET")
 	r.HandleFunc("/isochrone", getIsochronesHandler).Methods("GET")
