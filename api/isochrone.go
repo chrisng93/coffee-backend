@@ -23,6 +23,10 @@ const AvgWalkingSpeedMilesPerHour = 5
 // hour. The Guinness World Record is 9.17 miles per hour.
 const FastestWalkingSpeedMilesPerHour = 8
 
+// SlowestWalkingSpeedMilesPerHour is the lower limit on walking speed for humans in miles per
+// hour. Arbitrary number 2 because who walks slower than 2 mph.
+const SlowestWalkingSpeedMilesPerHour = 2
+
 // NumOfAngles is the number of angles at which we calculate an isochrone.
 const NumOfAngles = 12
 
@@ -106,6 +110,10 @@ func getDistanceMatrixResponse(
 	return durations, nil
 }
 
+func findRadiusGivenSpeedAndTime(speed int, walkingTimeMin int64) float64 {
+	return float64(walkingTimeMin) * float64(speed) / 60
+}
+
 func calculateIsochrones(
 	origin *models.Coordinates,
 	walkingTimeMin int64,
@@ -117,14 +125,23 @@ func calculateIsochrones(
 		// we calculate isochrones for. These values are updated on each incremental calculation
 		// of isochrones if we do not have a walking distance that's within the tolerance.
 		radius0 = append(radius0, 0)
-		radius1 = append(radius1, float64(walkingTimeMin)*float64(AvgWalkingSpeedMilesPerHour)/60)
+		radius1 = append(
+			radius1,
+			findRadiusGivenSpeedAndTime(AvgWalkingSpeedMilesPerHour, walkingTimeMin),
+		)
 		// angles is used to hold the respective angle for each angle in NumOfAngles. These
 		// values are unchanged in the isochrone calculation process.
 		angles = append(angles, float64(i*(360/NumOfAngles)))
 		// radiusMin and radiusMax are initially the minimum and maximum distance for the route.
 		// They're narrowed down in the isochrone calculation process.
-		radiusMin = append(radiusMin, 0)
-		radiusMax = append(radiusMax, float64(FastestWalkingSpeedMilesPerHour)/60*float64(walkingTimeMin))
+		radiusMin = append(
+			radiusMin,
+			findRadiusGivenSpeedAndTime(SlowestWalkingSpeedMilesPerHour, walkingTimeMin),
+		)
+		radiusMax = append(
+			radiusMax,
+			findRadiusGivenSpeedAndTime(FastestWalkingSpeedMilesPerHour, walkingTimeMin),
+		)
 		// durations is used to hold the walking durations from the Google Maps API for the
 		// respective radius.
 		durations = append(durations, 0)
